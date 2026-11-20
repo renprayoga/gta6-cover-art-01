@@ -1,38 +1,41 @@
-// Fixed scenes for screenshots: ?shot=editor shows the editor with the sample
-// photos loaded; ?shot=cover shows the exported cover alone, drawn by the
-// app itself at the chosen export size. Query params pick the scene:
-// layout, grade, size, caption, subtitle, panel, zoom, ox, oy.
-// window.__shotReady is set once the scene has painted.
-import { renderCover } from './cover.js';
+// Deterministic scene staging for screenshots.
+//
+// shots.js only *drives* the studio through window.__studio — it never
+// draws anything itself. Each scene is a fixed layout + grade + caption, so
+// re-running the screenshot pass reproduces the same four images.
 
-export async function runShot(shot, query, state, api) {
-  if (query.get('caption') !== null) state.title = query.get('caption');
-  if (query.get('subtitle') !== null) state.subtitle = query.get('subtitle');
-  if (query.get('layout')) state.layout = query.get('layout');
-  if (query.get('grade')) state.grade = query.get('grade');
-  if (query.get('size')) state.size = query.get('size');
-  const panel = Number(query.get('panel') ?? 0);
-  if (panel >= 0 && panel < state.panels.length) state.selectedPanel = panel;
-  const zoom = Number(query.get('zoom') ?? NaN);
-  if (!Number.isNaN(zoom)) state.panels[state.selectedPanel].zoom = zoom;
-  const ox = Number(query.get('ox') ?? NaN);
-  if (!Number.isNaN(ox)) state.panels[state.selectedPanel].ox = ox;
-  const oy = Number(query.get('oy') ?? NaN);
-  if (!Number.isNaN(oy)) state.panels[state.selectedPanel].oy = oy;
+const SCENES = {
+  // 1-cover.jpg — the editor, poster layout, Neon Night, photos loaded.
+  cover: { layout: "poster", grade: "neon", title: "Vice City", subtitle: "Leonida — 2026" },
+  // 2-editor.jpg — duo layout, Sunset grade, controls visible.
+  editor: { layout: "duo", grade: "sunset", title: "Vice City", subtitle: "Leonida — 2026" },
+  // 3-cover.jpg — one exported cover, full bleed, Dusk grade.
+  exported: { layout: "full", grade: "dusk", title: "Vice City", subtitle: "Leonida — 2026" },
+  // 4-export.jpg — full bleed, Vapor grade, alternate caption.
+  export: { layout: "full", grade: "vapor", title: "Grand Theft Auto VI", subtitle: "Selamat datang di Leonida" },
+};
 
-  await api.loadSamples();
-  document.getElementById('title').value = state.title;
-  document.getElementById('subtitle').value = state.subtitle;
+function applyScene(name) {
+  const scene = SCENES[name];
+  if (!scene || !window.__studio) return false;
+  window.__studio.setScene(scene);
+  document.body.dataset.scene = name;
+  return true;
+}
 
-  if (shot === 'cover') {
-    document.body.classList.add('shot-cover');
-    const canvas = document.getElementById('cover');
-    renderCover(canvas, state);
-    const scale = Math.min(innerWidth / canvas.width, innerHeight / canvas.height);
-    canvas.style.width = `${Math.round(canvas.width * scale)}px`;
-    canvas.style.height = `${Math.round(canvas.height * scale)}px`;
-  } else {
-    api.redraw();
+// `?shot=cover` hides the editing chrome so the shot is the cover itself.
+function applyShotParam() {
+  const shot = new URLSearchParams(location.search).get("shot");
+  if (shot) {
+    document.body.classList.add("shot-mode");
+    applyScene(shot);
   }
-  requestAnimationFrame(() => requestAnimationFrame(() => { window.__shotReady = true; }));
+}
+
+window.__shots = { scenes: SCENES, applyScene };
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", applyShotParam);
+} else {
+  applyShotParam();
 }
