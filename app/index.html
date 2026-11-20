@@ -1,73 +1,99 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neon Vice Cover Studio — GTA-style cover art maker</title>
+<title>Neon Vice Cover Studio — GTA 6 Cover Art</title>
+<meta name="description" content="Buat cover bergaya GTA 6 dari fotomu sendiri: pilih layout multi-panel, grade warna neon, tulis judul, lalu ekspor PNG. Semua offline, foto tidak pernah keluar dari mesin.">
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
+<header>
   <div>
-    <h1>Neon Vice <span>Cover Studio</span></h1>
-    <p>Turn your photos into bold multi-panel poster art — offline, in your browser.</p>
+    <h1>Neon Vice Cover Studio</h1>
+    <p>Cover bergaya GTA 6 dari fotomu — offline, tanpa unggah.</p>
   </div>
-  <button id="download-link" type="button" class="primary">Export PNG</button>
+  <div class="spacer"></div>
+  <button type="button" class="btn" id="helpBtn" aria-label="Bantuan">? Bantuan</button>
 </header>
-<main class="app">
-  <section class="controls" aria-label="Cover controls">
-    <div class="group">
-      <h2>1 · Photos</h2>
-      <p class="hint">Drop photos on the cover, or pick up to four. Click a slot to crop it.</p>
-      <div id="slots" class="slots"></div>
-      <input id="file-0" type="file" accept="image/*" hidden>
-      <input id="file-1" type="file" accept="image/*" hidden>
-      <input id="file-2" type="file" accept="image/*" hidden>
-      <input id="file-3" type="file" accept="image/*" hidden>
-      <button id="sample-btn" type="button" class="mini">Load sample photos</button>
-    </div>
-    <div class="group">
-      <h2>2 · Caption</h2>
-      <label>Title <input id="title" type="text" maxlength="28" value="Sunset Heist"></label>
-      <label>Subtitle <input id="subtitle" type="text" maxlength="28" value="Neon Coast"></label>
-    </div>
-    <div class="group">
-      <h2>3 · Layout</h2>
-      <div id="layout-pick" class="toggles"></div>
-    </div>
-    <div class="group">
-      <h2>4 · Grade</h2>
-      <div id="grade-pick" class="toggles"></div>
-    </div>
-    <div class="group">
-      <h2>5 · Crop the panel</h2>
-      <div id="panel-pick" class="toggles"></div>
-      <p id="panel-label" class="hint">Panel 1 — photo 1</p>
-      <label>Zoom <span id="zoom-val">100%</span>
-        <input id="zoom" type="range" min="1" max="3" step="0.01" value="1">
+
+<main>
+  <div class="stage-wrap">
+    <canvas id="stage" width="900" height="900" aria-label="Pratinjau cover"></canvas>
+    <p class="hint">Seret foto ke cover, geser panel untuk menggeser foto, putar roda mouse untuk zoom.</p>
+  </div>
+
+  <div class="controls">
+    <section class="box" aria-label="Layout">
+      <h2>Layout</h2>
+      <div class="row">
+        <button type="button" class="btn active" data-layout="poster">Poster (1+3)</button>
+        <button type="button" class="btn" data-layout="duo">Duo (1+2)</button>
+        <button type="button" class="btn" data-layout="full">Full bleed</button>
+      </div>
+    </section>
+
+    <section class="box" aria-label="Grade warna">
+      <h2>Grade warna</h2>
+      <div class="row">
+        <button type="button" class="btn" data-grade="sunset">Sunset</button>
+        <button type="button" class="btn active" data-grade="neon">Neon Night</button>
+        <button type="button" class="btn" data-grade="dusk">Dusk</button>
+        <button type="button" class="btn" data-grade="noir">Noir</button>
+        <button type="button" class="btn" data-grade="vapor">Vapor</button>
+      </div>
+    </section>
+
+    <section class="box" aria-label="Judul">
+      <h2>Judul cover</h2>
+      <label class="field">Judul
+        <input type="text" id="titleInput" value="Vice City" maxlength="40">
       </label>
-      <label>Position left–right
-        <input id="pan-x" type="range" min="-0.5" max="0.5" step="0.01" value="0">
+      <label class="field">Subjudul
+        <input type="text" id="subInput" value="Leonida — 2026" maxlength="60">
       </label>
-      <label>Position up–down
-        <input id="pan-y" type="range" min="-0.5" max="0.5" step="0.01" value="0">
-      </label>
-      <button id="reset-crop" type="button" class="mini">Reset crop</button>
-      <p class="hint">Tip: drag on the cover to move a photo, scroll to zoom it.</p>
-    </div>
-    <div class="group">
-      <h2>6 · Size &amp; export</h2>
-      <div id="size-pick" class="toggles"></div>
-      <button id="export" type="button" class="primary big">Export PNG</button>
-      <p id="status" role="status" aria-live="polite"></p>
-    </div>
-  </section>
-  <section class="preview" aria-label="Live cover preview">
-    <canvas id="cover" width="640" height="360" aria-label="The cover, live preview"></canvas>
-    <p class="hint">Live preview — exactly what the PNG will look like. Your photos never leave this machine.</p>
-  </section>
+    </section>
+
+    <section class="box" aria-label="Foto">
+      <h2>Foto — klik slot untuk memilih panel</h2>
+      <div id="slots"></div>
+      <p class="hint" style="text-align:left">Panel kosong memakai foto contoh bawaan, jadi cover selalu terisi.</p>
+    </section>
+
+    <section class="box" aria-label="Crop panel terpilih">
+      <h2>Crop — <span id="selLabel">Panel 1 dari 4</span></h2>
+      <div class="slider-row"><label for="zoom">Zoom</label><input type="range" id="zoom" min="0.5" max="4" step="0.01" value="1"><output id="zoomVal">100%</output></div>
+      <div class="slider-row"><label for="panX">Geser X</label><input type="range" id="panX" min="-0.6" max="0.6" step="0.01" value="0"><output id="panXVal">0</output></div>
+      <div class="slider-row"><label for="panY">Geser Y</label><input type="range" id="panY" min="-0.6" max="0.6" step="0.01" value="0"><output id="panYVal">0</output></div>
+      <button type="button" class="btn small ghost" id="resetCrop">Reset crop panel ini</button>
+    </section>
+
+    <section class="box" aria-label="Export">
+      <h2>Export PNG</h2>
+      <div id="exports"></div>
+      <p class="hint" style="text-align:left">Preview dan export memakai satu renderer yang sama, jadi hasilnya identik.</p>
+    </section>
+  </div>
 </main>
-<script type="module" src="./src/main.js"></script>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="helpOverlay" role="dialog" aria-label="Bantuan">
+  <div class="help-card">
+    <h2>Cara memakai</h2>
+    <p><strong>1.</strong> Pilih layout (Poster, Duo, atau Full bleed) dan grade warna.</p>
+    <p><strong>2.</strong> Klik <em>Pilih foto</em> di sebuah panel, atau seret foto langsung ke cover. Foto besar otomatis diperkecil dulu supaya editor tetap ringan.</p>
+    <p><strong>3.</strong> Klik panel lalu geser di cover untuk mengatur posisi, putar roda mouse atau pakai slider untuk zoom.</p>
+    <p><strong>4.</strong> Tulis judul dan subjudul — tampil langsung di cover.</p>
+    <p><strong>5.</strong> Klik salah satu tombol export PNG. Nama file berisi ukurannya.</p>
+    <p>Shortcut: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> ganti layout, <kbd>G</kbd> ganti grade, <kbd>E</kbd> export 1080×1080, <kbd>R</kbd> reset crop panel terpilih, <kbd>H</kbd> bantuan ini.</p>
+    <p>Semua proses berjalan di browsermu — tidak ada foto yang diunggah ke mana pun.</p>
+    <button type="button" class="btn" id="helpClose">Tutup</button>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+<script type="module" src="src/shots.js"></script>
 </body>
 </html>
